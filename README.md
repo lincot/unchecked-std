@@ -6,7 +6,7 @@ for the sake of performance and binary size.
 
 For safety, assertions are present in debug mode.
 
-The crate is `no_std`, but ruquires `alloc`.
+The crate is `no_std`, but requires `alloc`.
 
 ## Example
 
