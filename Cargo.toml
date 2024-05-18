@@ -1,0 +1,12 @@
+[package]
+authors = ["lincot <lincod@disroot.org>"]
+description = "some methods from the Rust standard library without some checks"
+edition = "2021"
+keywords = ["unchecked", "unsafe", "fast"]
+license = "0BSD"
+name = "unchecked-std"
+repository = "https://github.com/lincot/unchecked-std"
+version = "0.1.0"
+
+[dependencies]
+heapless = { version = "0.8.0", optional = true }
