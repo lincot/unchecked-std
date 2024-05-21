@@ -1,5 +1,5 @@
 [package]
-authors = ["lincot <lincod@disroot.org>"]
+authors = ["lincot <lincot@disroot.org>"]
 description = "some methods from the Rust standard library without some checks"
 edition = "2021"
 keywords = ["unchecked", "unsafe", "fast"]
