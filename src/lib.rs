@@ -1,3 +1,5 @@
+//! unchecked version of the Rust standard library
+
 #![no_std]
 
 extern crate alloc;
