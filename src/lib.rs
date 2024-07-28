@@ -140,8 +140,11 @@ pub trait ExtendFromWithinUnchecked {
     ///
     /// # Safety
     ///
+    /// `src` must be a valid index for the collection.
     /// The capacity of the collection must be sufficient for the new items.
-    unsafe fn extend_from_within_unchecked(&mut self, src: core::ops::Range<usize>);
+    unsafe fn extend_from_within_unchecked<R>(&mut self, src: R)
+    where
+        R: core::ops::RangeBounds<usize>;
 }
 
 impl<T: Copy> ExtendFromWithinUnchecked for Vec<T> {
@@ -150,14 +153,38 @@ impl<T: Copy> ExtendFromWithinUnchecked for Vec<T> {
     ///
     /// # Safety
     ///
-    /// - `src` needs to be valid index
-    /// - `self.capacity() - self.len()` must be `>= src.len()`
-    unsafe fn extend_from_within_unchecked(&mut self, src: core::ops::Range<usize>) {
-        let count = src.len();
-        debug_assert!(src.start <= src.end || src.end <= self.len());
+    /// - `src` must be a valid index for `self`
+    /// - capacity of `self` must be sufficient for the new items
+    unsafe fn extend_from_within_unchecked<R>(&mut self, src: R)
+    where
+        R: core::ops::RangeBounds<usize>,
+    {
+        let start = match src.start_bound() {
+            core::ops::Bound::Included(&start) => start,
+            core::ops::Bound::Excluded(&start) => {
+                debug_assert!(start != usize::MAX);
+                start + 1
+            }
+            core::ops::Bound::Unbounded => 0,
+        };
+        let end = match src.end_bound() {
+            core::ops::Bound::Included(&end) => {
+                debug_assert!(end != usize::MAX);
+                end + 1
+            }
+            core::ops::Bound::Excluded(&end) => end,
+            core::ops::Bound::Unbounded => self.len(),
+        };
+        debug_assert!(start <= end && end <= self.len());
+
+        let count = end - start;
         debug_assert!(self.capacity() - self.len() >= count);
-        let source = self.get_unchecked(src);
-        core::ptr::copy_nonoverlapping(source.as_ptr(), self.as_mut_ptr().add(self.len()), count);
+
+        core::ptr::copy_nonoverlapping(
+            self.as_ptr().add(start),
+            self.as_mut_ptr().add(self.len()),
+            count,
+        );
         self.set_len(self.len() + count);
     }
 }
