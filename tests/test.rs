@@ -1,8 +1,95 @@
-use core::ops::{Bound, RangeBounds};
+#![no_std]
+
+extern crate alloc;
+use alloc::{string::String, vec, vec::Vec};
+use core::{
+    array,
+    ops::{Bound, RangeBounds},
+};
+use rand::{distributions::Alphanumeric, prelude::*};
+use rand_pcg::Pcg64Mcg;
 use unchecked_std::prelude::*;
 
 #[test]
-fn test_extend_from_within_unchecked() {
+fn test_vec_push_unchecked() {
+    let len = 100;
+    let mut v = Vec::with_capacity(len);
+    let mut v_unchecked = Vec::with_capacity(len);
+    for _ in 0..len {
+        let value = 5u8;
+        v.push(value);
+        unsafe { v_unchecked.push_unchecked(value) };
+        assert_eq!(v, v_unchecked);
+    }
+}
+
+#[test]
+fn test_string_push_unchecked() {
+    let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
+    let ch_count = 100;
+    let mut s = String::with_capacity(4 * ch_count);
+    let mut s_unchecked = String::with_capacity(4 * ch_count);
+    for _ in 0..ch_count {
+        let ch = if rng.gen::<f64>() < 0.25 {
+            rng.sample(Alphanumeric) as char
+        } else {
+            rng.gen()
+        };
+        s.push(ch);
+        unsafe { s_unchecked.push_unchecked(ch) };
+        assert_eq!(s, s_unchecked);
+    }
+}
+
+#[test]
+fn test_string_extend_unchecked() {
+    let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
+    let chars: [_; 100] = array::from_fn(|_| {
+        if rng.gen::<f64>() < 0.25 {
+            rng.sample(Alphanumeric) as char
+        } else {
+            rng.gen()
+        }
+    });
+    let mut s = String::with_capacity(4 * chars.len());
+    let mut s_unchecked = String::with_capacity(4 * chars.len());
+    s.extend(chars);
+    unsafe { s_unchecked.extend_unchecked(chars) };
+    assert_eq!(s, s_unchecked);
+}
+
+#[test]
+fn test_vec_extend_from_slice_unchecked() {
+    let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
+    let slices: [[usize; 100]; 3] = array::from_fn(|_| array::from_fn(|_| rng.gen()));
+    let len = slices.iter().map(|slice| slice.len()).sum();
+    let mut v = Vec::with_capacity(len);
+    let mut v_unchecked = Vec::with_capacity(len);
+    for sl in slices {
+        v.extend_from_slice(&sl);
+        unsafe { v_unchecked.extend_from_slice_unchecked(&sl) };
+        assert_eq!(v, v_unchecked);
+    }
+}
+
+#[test]
+#[cfg(feature = "heapless")]
+fn test_heapless_vec_extend_from_slice_unchecked() {
+    const LEN: usize = 100;
+    const N_SLICES: usize = 3;
+    let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
+    let slices: [[usize; LEN]; N_SLICES] = array::from_fn(|_| array::from_fn(|_| rng.gen()));
+    let mut v = heapless::Vec::<_, { LEN * N_SLICES }>::new();
+    let mut v_unchecked = v.clone();
+    for sl in slices {
+        v.extend_from_slice(&sl).unwrap();
+        unsafe { v_unchecked.extend_from_slice_unchecked(&sl) };
+        assert_eq!(v, v_unchecked);
+    }
+}
+
+#[test]
+fn test_vec_extend_from_within_unchecked() {
     unsafe fn test_range(src: impl RangeBounds<usize> + Clone) {
         let mut v = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
         let mut v_unchecked = v.clone();
@@ -72,4 +159,42 @@ fn test_extend_from_within_unchecked() {
             ),
         );
     }
+}
+
+#[test]
+fn test_string_push_str_unchecked() {
+    const N_STRINGS_TO_PUSH: usize = 5;
+    let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
+    let ch_count = 100;
+    let mut s = String::with_capacity(N_STRINGS_TO_PUSH * 4 * ch_count);
+    let mut s_unchecked = String::with_capacity(N_STRINGS_TO_PUSH * 4 * ch_count);
+    let mut ss_to_push: [_; N_STRINGS_TO_PUSH] =
+        array::from_fn(|_| String::with_capacity(4 * ch_count));
+    for s_to_push in ss_to_push.iter_mut() {
+        for _ in 0..rng.gen_range(0..ch_count) {
+            let ch = if rng.gen::<f64>() < 0.25 {
+                rng.sample(Alphanumeric) as char
+            } else {
+                rng.gen()
+            };
+            s_to_push.push(ch);
+        }
+        s.push_str(s_to_push);
+        unsafe { s_unchecked.push_str_unchecked(s_to_push) };
+        assert_eq!(s, s_unchecked);
+    }
+}
+
+#[test]
+fn test_copy_from_slice_unchecked() {
+    let mut arr: [usize; 100] = array::from_fn(|i| i);
+    let mut arr_unchecked: [usize; 100] = array::from_fn(|i| i);
+    let src0: [usize; 200] = array::from_fn(|i| 1337 * i);
+    let src1: [usize; 50] = array::from_fn(|i| 42 * i);
+    arr.copy_from_slice(&src0[50..150]);
+    unsafe { arr_unchecked.copy_from_slice_unchecked(&src0[50..150]) };
+    assert_eq!(arr, arr_unchecked);
+    arr[25..75].copy_from_slice(&src1);
+    unsafe { arr_unchecked[25..75].copy_from_slice_unchecked(&src1) };
+    assert_eq!(arr, arr_unchecked);
 }
