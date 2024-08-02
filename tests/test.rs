@@ -170,7 +170,7 @@ fn test_string_push_str_unchecked() {
     let mut s_unchecked = String::with_capacity(N_STRINGS_TO_PUSH * 4 * ch_count);
     let mut ss_to_push: [_; N_STRINGS_TO_PUSH] =
         array::from_fn(|_| String::with_capacity(4 * ch_count));
-    for s_to_push in ss_to_push.iter_mut() {
+    for s_to_push in &mut ss_to_push {
         for _ in 0..rng.gen_range(0..ch_count) {
             let ch = if rng.gen::<f64>() < 0.25 {
                 rng.sample(Alphanumeric) as char
