@@ -6,6 +6,10 @@ for the sake of performance and binary size.
 
 For safety, assertions are present in debug mode.
 
+Most implementations do not rely on corresponding std methods, except for
+`extend_from_slice_unchecked` which works based on `unreachable_unchecked`
+and has a codegen check to confirm that the capacity check gets elided.
+
 The crate is `no_std`, but requires `alloc`.
 
 ## Example
