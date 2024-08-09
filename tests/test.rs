@@ -51,8 +51,11 @@ fn test_string_extend_unchecked() {
             rng.gen()
         }
     });
-    let mut s = String::with_capacity(4 * chars.len());
-    let mut s_unchecked = String::with_capacity(4 * chars.len());
+    let mut s = String::with_capacity(2 * 4 * chars.len());
+    let mut s_unchecked = String::with_capacity(2 * 4 * chars.len());
+    s.extend(&chars);
+    unsafe { s_unchecked.extend_unchecked(&chars) };
+    assert_eq!(s, s_unchecked);
     s.extend(chars);
     unsafe { s_unchecked.extend_unchecked(chars) };
     assert_eq!(s, s_unchecked);

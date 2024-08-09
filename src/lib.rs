@@ -75,18 +75,32 @@ pub trait ExtendUnchecked<T> {
     /// # Safety
     ///
     /// The capacity of the collection must be sufficient for the new items.
-    unsafe fn extend_unchecked(&mut self, iter: T);
+    unsafe fn extend_unchecked<I: IntoIterator<Item = T>>(&mut self, iter: I);
 }
 
-impl<T: IntoIterator<Item = char>> ExtendUnchecked<T> for String {
+impl ExtendUnchecked<char> for String {
     /// `<String as Extend<char>>::extend` without the capacity check.
     ///
     /// # Safety
     ///
     /// `self.len() + iter.into_iter().count()` must be `<= self.capacity()`.
     #[inline]
-    unsafe fn extend_unchecked(&mut self, iter: T) {
+    unsafe fn extend_unchecked<I: IntoIterator<Item = char>>(&mut self, iter: I) {
         for value in iter {
+            self.push_unchecked(value);
+        }
+    }
+}
+
+impl<'a> ExtendUnchecked<&'a char> for String {
+    /// `<String as Extend<&'a char>>::extend` without the capacity check.
+    ///
+    /// # Safety
+    ///
+    /// `self.len() + iter.into_iter().count()` must be `<= self.capacity()`.
+    #[inline]
+    unsafe fn extend_unchecked<I: IntoIterator<Item = &'a char>>(&mut self, iter: I) {
+        for &value in iter {
             self.push_unchecked(value);
         }
     }
