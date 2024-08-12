@@ -25,11 +25,14 @@ fn test_vec_push_unchecked() {
 
 #[test]
 fn test_string_push_unchecked() {
+    const N_CHARS: usize = 100;
     let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
-    let ch_count = 100;
-    let mut s = String::with_capacity(4 * ch_count);
-    let mut s_unchecked = String::with_capacity(4 * ch_count);
-    for _ in 0..ch_count {
+    let mut s = String::with_capacity(4 * N_CHARS);
+    let mut s_unchecked = String::with_capacity(4 * N_CHARS);
+    #[cfg(feature = "heapless")]
+    let mut s_heapless = heapless::String::<{ 4 * N_CHARS }>::new();
+
+    for _ in 0..N_CHARS {
         let ch = if rng.gen::<f64>() < 0.25 {
             rng.sample(Alphanumeric) as char
         } else {
@@ -38,13 +41,19 @@ fn test_string_push_unchecked() {
         s.push(ch);
         unsafe { s_unchecked.push_unchecked(ch) };
         assert_eq!(s, s_unchecked);
+        #[cfg(feature = "heapless")]
+        unsafe {
+            s_heapless.push_unchecked(ch);
+            assert_eq!(s, s_heapless.as_str());
+        }
     }
 }
 
 #[test]
 fn test_string_extend_unchecked() {
+    const N_CHARS: usize = 100;
     let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
-    let chars: [_; 100] = array::from_fn(|_| {
+    let chars: [_; N_CHARS] = array::from_fn(|_| {
         if rng.gen::<f64>() < 0.25 {
             rng.sample(Alphanumeric) as char
         } else {
@@ -53,57 +62,69 @@ fn test_string_extend_unchecked() {
     });
     let mut s = String::with_capacity(2 * 4 * chars.len());
     let mut s_unchecked = String::with_capacity(2 * 4 * chars.len());
+    #[cfg(feature = "heapless")]
+    let mut s_heapless = heapless::String::<{ 2 * 4 * N_CHARS }>::new();
     s.extend(&chars);
     unsafe { s_unchecked.extend_unchecked(&chars) };
     assert_eq!(s, s_unchecked);
+    #[cfg(feature = "heapless")]
+    {
+        unsafe { s_heapless.extend_unchecked(&chars) };
+        assert_eq!(s, s_heapless.as_str());
+    }
     s.extend(chars);
     unsafe { s_unchecked.extend_unchecked(chars) };
     assert_eq!(s, s_unchecked);
-}
-
-#[test]
-fn test_vec_extend_from_slice_unchecked() {
-    let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
-    let slices: [[usize; 100]; 3] = array::from_fn(|_| array::from_fn(|_| rng.gen()));
-    let len = slices.iter().map(|slice| slice.len()).sum();
-    let mut v = Vec::with_capacity(len);
-    let mut v_unchecked = Vec::with_capacity(len);
-    for sl in slices {
-        v.extend_from_slice(&sl);
-        unsafe { v_unchecked.extend_from_slice_unchecked(&sl) };
-        assert_eq!(v, v_unchecked);
+    #[cfg(feature = "heapless")]
+    {
+        unsafe { s_heapless.extend_unchecked(chars) };
+        assert_eq!(s, s_heapless.as_str());
     }
 }
 
 #[test]
-#[cfg(feature = "heapless")]
-fn test_heapless_vec_extend_from_slice_unchecked() {
+fn test_vec_extend_from_slice_unchecked() {
     const LEN: usize = 100;
     const N_SLICES: usize = 3;
     let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
-    let slices: [[usize; LEN]; N_SLICES] = array::from_fn(|_| array::from_fn(|_| rng.gen()));
-    let mut v = heapless::Vec::<_, { LEN * N_SLICES }>::new();
-    let mut v_unchecked = v.clone();
-    for sl in slices {
-        v.extend_from_slice(&sl).unwrap();
+    let mut v = Vec::with_capacity(LEN * N_SLICES);
+    let mut v_unchecked = Vec::with_capacity(LEN * N_SLICES);
+    #[cfg(feature = "heapless")]
+    let mut v_heapless = heapless::Vec::<_, { LEN * N_SLICES }>::new();
+    for _ in 0..N_SLICES {
+        let sl: [usize; LEN] = array::from_fn(|_| rng.gen());
+
+        v.extend_from_slice(&sl);
         unsafe { v_unchecked.extend_from_slice_unchecked(&sl) };
         assert_eq!(v, v_unchecked);
+        #[cfg(feature = "heapless")]
+        {
+            unsafe { v_heapless.extend_from_slice_unchecked(&sl) };
+            assert_eq!(v, v_heapless.as_slice());
+        }
     }
 }
 
 #[test]
 fn test_vec_extend_from_within_unchecked() {
     unsafe fn test_range(src: impl RangeBounds<usize> + Clone) {
-        let mut v = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-        let mut v_unchecked = v.clone();
+        const INIT: [u32; 10] = [1, 5, 85, 1_348_678, 34, 78_678_675, 69, 234, 42, 0];
+        let mut v = Vec::with_capacity(2 * INIT.len());
+        v.extend(INIT);
+        let mut v_unchecked = Vec::with_capacity(2 * INIT.len());
+        v_unchecked.extend(INIT);
 
-        v.reserve(v.len());
         v.extend_from_within(src.clone());
-
-        v_unchecked.reserve(v_unchecked.len());
-        v_unchecked.extend_from_within_unchecked(src);
-
+        v_unchecked.extend_from_within_unchecked(src.clone());
         assert_eq!(v, v_unchecked);
+
+        #[cfg(feature = "heapless")]
+        {
+            let mut v_heapless = heapless::Vec::<_, { 2 * INIT.len() }>::new();
+            v_heapless.extend(INIT);
+            v_heapless.extend_from_within_unchecked(src);
+            assert_eq!(v, v_heapless.as_slice());
+        }
     }
 
     unsafe fn test_range_zero_sized(len: usize, src: impl RangeBounds<usize> + Clone) {
@@ -113,9 +134,17 @@ fn test_vec_extend_from_within_unchecked() {
 
         v.extend_from_within(src.clone());
 
-        v_unchecked.extend_from_within_unchecked(src);
+        v_unchecked.extend_from_within_unchecked(src.clone());
 
         assert_eq!(v.len(), v_unchecked.len());
+
+        #[cfg(feature = "heapless")]
+        {
+            let mut v_heapless = heapless::Vec::<(), { usize::MAX }>::new();
+            v_heapless.set_len(len);
+            v_heapless.extend_from_within_unchecked(src);
+            assert_eq!(v.len(), v_heapless.len());
+        }
     }
 
     let mut v = vec![0, 1, 2];
@@ -167,24 +196,31 @@ fn test_vec_extend_from_within_unchecked() {
 #[test]
 fn test_string_push_str_unchecked() {
     const N_STRINGS_TO_PUSH: usize = 5;
+    const N_CHARS: usize = 100;
     let mut rng = Pcg64Mcg::new(0xcafe_f00d_d15e_a5e5);
-    let ch_count = 100;
-    let mut s = String::with_capacity(N_STRINGS_TO_PUSH * 4 * ch_count);
-    let mut s_unchecked = String::with_capacity(N_STRINGS_TO_PUSH * 4 * ch_count);
-    let mut ss_to_push: [_; N_STRINGS_TO_PUSH] =
-        array::from_fn(|_| String::with_capacity(4 * ch_count));
-    for s_to_push in &mut ss_to_push {
-        for _ in 0..rng.gen_range(0..ch_count) {
+    let mut s = String::with_capacity(N_STRINGS_TO_PUSH * 4 * N_CHARS);
+    let mut s_unchecked = String::with_capacity(N_STRINGS_TO_PUSH * 4 * N_CHARS);
+    #[cfg(feature = "heapless")]
+    let mut s_heapless = heapless::String::<{ N_STRINGS_TO_PUSH * 4 * N_CHARS }>::new();
+    for _ in 0..N_STRINGS_TO_PUSH {
+        let mut string_to_push = String::with_capacity(4 * N_CHARS);
+        for _ in 0..rng.gen_range(0..N_CHARS) {
             let ch = if rng.gen::<f64>() < 0.25 {
                 rng.sample(Alphanumeric) as char
             } else {
                 rng.gen()
             };
-            s_to_push.push(ch);
+            string_to_push.push(ch);
         }
-        s.push_str(s_to_push);
-        unsafe { s_unchecked.push_str_unchecked(s_to_push) };
+
+        s.push_str(&string_to_push);
+        unsafe { s_unchecked.push_str_unchecked(&string_to_push) };
         assert_eq!(s, s_unchecked);
+        #[cfg(feature = "heapless")]
+        {
+            unsafe { s_heapless.push_str_unchecked(&string_to_push) };
+            assert_eq!(s, s_heapless.as_str());
+        }
     }
 }
 
