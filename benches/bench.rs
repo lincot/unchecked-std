@@ -21,6 +21,7 @@ fn hello_checked(name: &str) -> String {
 
 fn hello_unchecked(name: &str) -> String {
     let mut s = String::with_capacity("Hello, !".len() + name.len());
+    // SAFETY: `s` has been initialized with sufficient capacity
     unsafe {
         s.push_str_unchecked("Hello, ");
         s.push_str_unchecked(name);
