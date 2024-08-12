@@ -6,6 +6,7 @@
 extern crate alloc;
 use alloc::{string::String, vec::Vec};
 
+/// A trait for `push` without the capacity check.
 pub trait PushUnchecked<T> {
     /// Appends an element to the back of a collection without the capacity check.
     ///
@@ -81,6 +82,7 @@ impl<const N: usize> PushUnchecked<char> for heapless::String<N> {
     gen_string_push_unchecked!();
 }
 
+/// A trait for `extend` without the capacity check.
 pub trait ExtendUnchecked<T> {
     /// Extends a collection with the contents of an iterator without the capacity check.
     ///
@@ -124,6 +126,7 @@ impl<'a, const N: usize> ExtendUnchecked<&'a char> for heapless::String<N> {
     gen_string_extend_unchecked!(&'a char, &ch, ch);
 }
 
+/// A trait for `extend_from_slice` without the capacity check.
 pub trait ExtendFromSliceUnchecked<T> {
     /// Clones and appends all elements in a slice to the collection.
     ///
@@ -166,6 +169,7 @@ impl<T: Copy, const N: usize> ExtendFromSliceUnchecked<T> for heapless::Vec<T, N
     }
 }
 
+/// A trait for `extend_from_within` without the capacity and bounds checks.
 pub trait ExtendFromWithinUnchecked {
     /// Copies elements from `src` range to the end of the collection
     /// without the capacity check and the bounds check for the range.
@@ -234,6 +238,7 @@ impl<T: Copy, const N: usize> ExtendFromWithinUnchecked for heapless::Vec<T, N> 
     gen_extend_from_within_unchecked!();
 }
 
+/// A trait for `push_str` without the capacity check.
 pub trait PushStrUnchecked {
     /// Appends a given string slice onto the end of this collection without the capacity check.
     ///
@@ -267,6 +272,7 @@ impl<const N: usize> PushStrUnchecked for heapless::String<N> {
     gen_push_str_unchecked!();
 }
 
+/// A trait for `copy_from_slice` without the length check.
 pub trait CopyFromSliceUnchecked<T> {
     /// Copies all elements from `src` into `self` without the length check.
     ///
@@ -290,6 +296,7 @@ impl<T: Copy> CopyFromSliceUnchecked<T> for [T] {
     }
 }
 
+/// Exports everything from the crate for simplicity and to comply with `clippy::wildcard_imports`.
 pub mod prelude {
     pub use super::*;
 }
