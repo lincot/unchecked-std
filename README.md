@@ -1,7 +1,6 @@
 # unchecked-std
 
-Some methods from the Rust standard library without some checks
-made non-reallocating and non-panicking
+Rust standard library methods with some checks removed
 for the sake of performance and binary size.
 
 For safety, assertions are present in debug mode.
