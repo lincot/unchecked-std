@@ -1,6 +1,9 @@
+#![no_std]
 #![feature(test)]
 
+extern crate alloc;
 extern crate test;
+use alloc::{format, string::String};
 use test::{black_box, Bencher};
 use unchecked_std::prelude::*;
 
