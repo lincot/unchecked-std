@@ -77,7 +77,8 @@ impl<S: GenericString> PushUnchecked<char> for S {
 
 /// A trait for `extend` without the capacity check.
 pub trait ExtendUnchecked<T> {
-    /// Extends a collection with the contents of an iterator without the capacity check.
+    /// Extends a collection with the contents of an iterator without the
+    /// capacity check.
     ///
     /// # Safety
     ///
@@ -216,7 +217,8 @@ impl<T: Copy, V: GenericVec<Item = T>> ExtendFromWithinUnchecked for V {
 
 /// A trait for `push_str` without the capacity check.
 pub trait PushStrUnchecked {
-    /// Appends a given string slice onto the end of this collection without the capacity check.
+    /// Appends a given string slice onto the end of this collection without
+    /// the capacity check.
     ///
     /// # Safety
     ///
