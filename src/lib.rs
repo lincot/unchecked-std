@@ -4,7 +4,11 @@
 #![no_std]
 
 extern crate alloc;
-use alloc::{string::String, vec::Vec};
+use self::{generic_string::GenericString, generic_vec::GenericVec};
+use alloc::vec::Vec;
+
+mod generic_string;
+mod generic_vec;
 
 /// A trait for `push` without the capacity check.
 pub trait PushUnchecked<T> {
@@ -34,52 +38,41 @@ impl<T> PushUnchecked<T> for Vec<T> {
     }
 }
 
-macro_rules! gen_string_push_unchecked {
-    () => {
-        /// [`Self::push`] without the capacity check.
-        ///
-        /// # Safety
-        ///
-        /// `self.len() + ch.len_utf8()` must be `<= self.capacity()`.
-        #[inline]
-        unsafe fn push_unchecked(&mut self, ch: char) {
-            let len = self.len();
-            let ch_len = ch.len_utf8();
-            debug_assert!(len + ch_len <= self.capacity());
-            let ptr = self.as_mut_vec().as_mut_ptr().add(len);
-            match ch_len {
-                1 => {
-                    *ptr = ch as u8;
-                }
-                2 => {
-                    *ptr = (ch as u32 >> 6 & 0x1F) as u8 | 0b1100_0000;
-                    *ptr.add(1) = (ch as u32 & 0x3F) as u8 | 0b1000_0000;
-                }
-                3 => {
-                    *ptr = (ch as u32 >> 12 & 0x0F) as u8 | 0b1110_0000;
-                    *ptr.add(1) = (ch as u32 >> 6 & 0x3F) as u8 | 0b1000_0000;
-                    *ptr.add(2) = (ch as u32 & 0x3F) as u8 | 0b1000_0000;
-                }
-                4 => {
-                    *ptr = (ch as u32 >> 18 & 0x07) as u8 | 0b1111_0000;
-                    *ptr.add(1) = (ch as u32 >> 12 & 0x3F) as u8 | 0b1000_0000;
-                    *ptr.add(2) = (ch as u32 >> 6 & 0x3F) as u8 | 0b1000_0000;
-                    *ptr.add(3) = (ch as u32 & 0x3F) as u8 | 0b1000_0000;
-                }
-                _ => core::hint::unreachable_unchecked(),
+impl<S: GenericString> PushUnchecked<char> for S {
+    /// `push` without the capacity check.
+    ///
+    /// # Safety
+    ///
+    /// `self.len() + ch.len_utf8()` must be `<= self.capacity()`.
+    #[inline]
+    unsafe fn push_unchecked(&mut self, ch: char) {
+        let len = self.len();
+        let ch_len = ch.len_utf8();
+        debug_assert!(len + ch_len <= self.capacity());
+        let ptr = self.as_mut_vec().as_mut_ptr().add(len);
+        match ch_len {
+            1 => {
+                *ptr = ch as u8;
             }
-            self.as_mut_vec().set_len(len + ch_len);
+            2 => {
+                *ptr = (ch as u32 >> 6 & 0x1F) as u8 | 0b1100_0000;
+                *ptr.add(1) = (ch as u32 & 0x3F) as u8 | 0b1000_0000;
+            }
+            3 => {
+                *ptr = (ch as u32 >> 12 & 0x0F) as u8 | 0b1110_0000;
+                *ptr.add(1) = (ch as u32 >> 6 & 0x3F) as u8 | 0b1000_0000;
+                *ptr.add(2) = (ch as u32 & 0x3F) as u8 | 0b1000_0000;
+            }
+            4 => {
+                *ptr = (ch as u32 >> 18 & 0x07) as u8 | 0b1111_0000;
+                *ptr.add(1) = (ch as u32 >> 12 & 0x3F) as u8 | 0b1000_0000;
+                *ptr.add(2) = (ch as u32 >> 6 & 0x3F) as u8 | 0b1000_0000;
+                *ptr.add(3) = (ch as u32 & 0x3F) as u8 | 0b1000_0000;
+            }
+            _ => core::hint::unreachable_unchecked(),
         }
-    };
-}
-
-impl PushUnchecked<char> for String {
-    gen_string_push_unchecked!();
-}
-
-#[cfg(feature = "heapless")]
-impl<const N: usize> PushUnchecked<char> for heapless::String<N> {
-    gen_string_push_unchecked!();
+        self.as_mut_vec().set_len(len + ch_len);
+    }
 }
 
 /// A trait for `extend` without the capacity check.
@@ -92,38 +85,32 @@ pub trait ExtendUnchecked<T> {
     unsafe fn extend_unchecked<I: IntoIterator<Item = T>>(&mut self, iter: I);
 }
 
-macro_rules! gen_string_extend_unchecked {
-    ($t:ty, $pattern:pat, $item: expr) => {
-        /// [`Extend::extend`] without the capacity check.
-        ///
-        /// # Safety
-        ///
-        /// `self.len() + iter.into_iter().count()` must be `<= self.capacity()`.
-        #[inline]
-        unsafe fn extend_unchecked<I: IntoIterator<Item = $t>>(&mut self, iter: I) {
-            for $pattern in iter {
-                self.push_unchecked($item);
-            }
+impl<S: GenericString> ExtendUnchecked<char> for S {
+    /// [`Extend::extend`] without the capacity check.
+    ///
+    /// # Safety
+    ///
+    /// `self.len() + iter.into_iter().count()` must be `<= self.capacity()`.
+    #[inline]
+    unsafe fn extend_unchecked<I: IntoIterator<Item = char>>(&mut self, iter: I) {
+        for ch in iter {
+            self.push_unchecked(ch);
         }
-    };
+    }
 }
 
-impl ExtendUnchecked<char> for String {
-    gen_string_extend_unchecked!(char, ch, ch);
-}
-
-impl<'a> ExtendUnchecked<&'a char> for String {
-    gen_string_extend_unchecked!(&'a char, &ch, ch);
-}
-
-#[cfg(feature = "heapless")]
-impl<const N: usize> ExtendUnchecked<char> for heapless::String<N> {
-    gen_string_extend_unchecked!(char, ch, ch);
-}
-
-#[cfg(feature = "heapless")]
-impl<'a, const N: usize> ExtendUnchecked<&'a char> for heapless::String<N> {
-    gen_string_extend_unchecked!(&'a char, &ch, ch);
+impl<'a, S: GenericString> ExtendUnchecked<&'a char> for S {
+    /// [`Extend::extend`] without the capacity check.
+    ///
+    /// # Safety
+    ///
+    /// `self.len() + iter.into_iter().count()` must be `<= self.capacity()`.
+    #[inline]
+    unsafe fn extend_unchecked<I: IntoIterator<Item = &'a char>>(&mut self, iter: I) {
+        for &ch in iter {
+            self.push_unchecked(ch);
+        }
+    }
 }
 
 /// A trait for `extend_from_slice` without the capacity check.
@@ -183,59 +170,48 @@ pub trait ExtendFromWithinUnchecked {
         R: core::ops::RangeBounds<usize>;
 }
 
-macro_rules! gen_extend_from_within_unchecked {
-    () => {
-        /// [`Vec::extend_from_within`] without the capacity check
-        /// and the bounds check for the range.
-        ///
-        /// # Safety
-        ///
-        /// - `src` must be a valid index for `self`
-        /// - capacity of `self` must be sufficient for the new items
-        unsafe fn extend_from_within_unchecked<R>(&mut self, src: R)
-        where
-            R: core::ops::RangeBounds<usize>,
-        {
-            let start = match src.start_bound() {
-                core::ops::Bound::Included(&start) => start,
-                core::ops::Bound::Excluded(&start) => {
-                    debug_assert!(start != usize::MAX);
-                    start + 1
-                }
-                core::ops::Bound::Unbounded => 0,
-            };
-            let end = match src.end_bound() {
-                core::ops::Bound::Included(&end) => {
-                    debug_assert!(end != usize::MAX);
-                    end + 1
-                }
-                core::ops::Bound::Excluded(&end) => end,
-                core::ops::Bound::Unbounded => self.len(),
-            };
-            debug_assert!(start <= end && end <= self.len());
+impl<T: Copy, V: GenericVec<Item = T>> ExtendFromWithinUnchecked for V {
+    /// `extend_from_within` without the capacity check
+    /// and the bounds check for the range.
+    ///
+    /// # Safety
+    ///
+    /// - `src` must be a valid index for `self`
+    /// - capacity of `self` must be sufficient for the new items
+    unsafe fn extend_from_within_unchecked<R>(&mut self, src: R)
+    where
+        R: core::ops::RangeBounds<usize>,
+    {
+        let start = match src.start_bound() {
+            core::ops::Bound::Included(&start) => start,
+            core::ops::Bound::Excluded(&start) => {
+                debug_assert!(start != usize::MAX);
+                start + 1
+            }
+            core::ops::Bound::Unbounded => 0,
+        };
+        let end = match src.end_bound() {
+            core::ops::Bound::Included(&end) => {
+                debug_assert!(end != usize::MAX);
+                end + 1
+            }
+            core::ops::Bound::Excluded(&end) => end,
+            core::ops::Bound::Unbounded => self.len(),
+        };
+        debug_assert!(start <= end && end <= self.len());
 
-            let count = end - start;
-            debug_assert!(self.capacity() - self.len() >= count);
+        let count = end - start;
+        debug_assert!(self.capacity() - self.len() >= count);
 
-            // NOTE: miri accepts this memcpy with Vec, but not with heapless::Vec,
-            // unless -Zmiri-tree-borrows is used
-            core::ptr::copy_nonoverlapping(
-                self.as_ptr().add(start),
-                self.as_mut_ptr().add(self.len()),
-                count,
-            );
-            self.set_len(self.len() + count);
-        }
-    };
-}
-
-impl<T: Copy> ExtendFromWithinUnchecked for Vec<T> {
-    gen_extend_from_within_unchecked!();
-}
-
-#[cfg(feature = "heapless")]
-impl<T: Copy, const N: usize> ExtendFromWithinUnchecked for heapless::Vec<T, N> {
-    gen_extend_from_within_unchecked!();
+        // NOTE: miri accepts this memcpy with Vec, but not with heapless::Vec,
+        // unless -Zmiri-tree-borrows is used
+        core::ptr::copy_nonoverlapping(
+            self.as_ptr().add(start),
+            self.as_mut_ptr().add(self.len()),
+            count,
+        );
+        self.set_len(self.len() + count);
+    }
 }
 
 /// A trait for `push_str` without the capacity check.
@@ -248,28 +224,17 @@ pub trait PushStrUnchecked {
     unsafe fn push_str_unchecked(&mut self, string: &str);
 }
 
-macro_rules! gen_push_str_unchecked {
-    () => {
-        /// [`Self::push_str`] without the capacity check.
-        ///
-        /// # Safety
-        ///
-        /// `self.len() + string.len()` must be `<= self.capacity()`.
-        #[inline]
-        unsafe fn push_str_unchecked(&mut self, string: &str) {
-            self.as_mut_vec()
-                .extend_from_slice_unchecked(string.as_bytes());
-        }
-    };
-}
-
-impl PushStrUnchecked for String {
-    gen_push_str_unchecked!();
-}
-
-#[cfg(feature = "heapless")]
-impl<const N: usize> PushStrUnchecked for heapless::String<N> {
-    gen_push_str_unchecked!();
+impl<S: GenericString> PushStrUnchecked for S {
+    /// `push_str` without the capacity check.
+    ///
+    /// # Safety
+    ///
+    /// `self.len() + string.len()` must be `<= self.capacity()`.
+    #[inline]
+    unsafe fn push_str_unchecked(&mut self, string: &str) {
+        self.as_mut_vec()
+            .extend_from_slice_unchecked(string.as_bytes());
+    }
 }
 
 /// A trait for `copy_from_slice` without the length check.
@@ -296,7 +261,7 @@ impl<T: Copy> CopyFromSliceUnchecked<T> for [T] {
     }
 }
 
-/// Exports everything from the crate for simplicity and to comply with `clippy::wildcard_imports`.
+/// Duplicate exports in `prelude` to comply with `clippy::wildcard_imports`.
 pub mod prelude {
     pub use super::*;
 }
