@@ -1,5 +1,4 @@
-//! Rust standard library methods with some checks removed
-//! for the sake of performance and binary size.
+//! Fast, unchecked variants of common std methods.
 
 #![no_std]
 

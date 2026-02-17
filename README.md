@@ -1,19 +1,24 @@
 # unchecked-std
 
-Rust standard library methods with some checks removed
-for the sake of performance and binary size.
+Common Rust standard library methods with capacity and bounds checks removed to
+improve performance.
 
-For safety, assertions are present in debug mode.
+For safety, assertions are enabled in debug builds.
 
-Most functions are unchecked versions of the corresponding safe std methods,
-with an exception of `push_many_unchecked`, which doesn't have one.
+Most APIs are unchecked counterparts of standard methods, with an exception of
+`push_many_unchecked`, which doesn't have a corresponding safe std method.
 
-Most implementations do not rely on corresponding std methods, except for
-`extend_from_slice_unchecked` which works based on `unreachable_unchecked`
-and has [a codegen test](tests/codegen.rs)
-to confirm that the capacity check gets elided.
+Most implementations are manual, except for `extend_from_slice_unchecked` which
+calls `extend_from_slice` and uses `unreachable_unchecked` with
+[a codegen test](tests/codegen.rs) to confirm that the capacity check gets
+elided.
 
 The crate is `no_std`, but requires `alloc`.
+
+## Feature flags
+
+The `heapless` feature adds unchecked methods for
+[heapless](https://github.com/rust-embedded/heapless) data structures.
 
 ## Example
 
@@ -54,15 +59,10 @@ fn hello_unchecked(name: &str) -> String {
 }
 ```
 
-The [benchmark](benches/bench.rs) result is:
+Example [benchmark](benches/bench.rs) result:
 
 ```
 test bench_hello_format    ... bench:          30.56 ns/iter (+/- 0.30)
 test bench_hello_checked   ... bench:          14.57 ns/iter (+/- 0.44)
 test bench_hello_unchecked ... bench:           9.98 ns/iter (+/- 0.22)
 ```
-
-## Feature flags
-
-`heapless` adds unchecked methods for
-[heapless](https://github.com/rust-embedded/heapless) data structures.

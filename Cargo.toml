@@ -1,6 +1,6 @@
 [package]
 authors = ["lincot <lincot@disroot.org>"]
-description = "some methods from the Rust standard library without some checks"
+description = "Fast, unchecked variants of common std methods"
 edition = "2021"
 keywords = ["unchecked", "unsafe", "fast"]
 license = "0BSD"
