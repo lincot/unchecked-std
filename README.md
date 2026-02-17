@@ -5,6 +5,9 @@ for the sake of performance and binary size.
 
 For safety, assertions are present in debug mode.
 
+Most functions are unchecked versions of the corresponding safe std methods,
+with an exception of `push_many_unchecked`, which doesn't have one.
+
 Most implementations do not rely on corresponding std methods, except for
 `extend_from_slice_unchecked` which works based on `unreachable_unchecked`
 and has [a codegen test](tests/codegen.rs)

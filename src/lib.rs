@@ -265,6 +265,53 @@ impl<T: Copy> CopyFromSliceUnchecked<T> for [T] {
     }
 }
 
+/// A trait to `push` many times without the capacity check.
+pub trait PushManyUnchecked<T> {
+    /// Appends an element `count` times to the back of a collection without
+    /// the capacity check.
+    ///
+    /// # Safety
+    ///
+    /// The capacity of the collection must be sufficient for the new items.
+    unsafe fn push_many_unchecked(&mut self, value: T, count: usize);
+}
+
+impl<V: GenericVec<Item = u8>> PushManyUnchecked<u8> for V {
+    /// Appends a `byte` `count` times to the back of the vector without the
+    /// capacity check.
+    ///
+    /// # Safety
+    ///
+    /// The capacity of the vector must be sufficient for the new bytes.
+    #[inline]
+    unsafe fn push_many_unchecked(&mut self, byte: u8, count: usize) {
+        debug_assert!(self.capacity() - self.len() >= count);
+
+        core::ptr::write_bytes(self.as_mut_ptr().add(self.len()), byte, count);
+        self.set_len(self.len() + count);
+    }
+}
+
+impl<V: GenericVec<Item = i8>> PushManyUnchecked<i8> for V {
+    /// Appends a `byte` `count` times to the back of the vector without the
+    /// capacity check.
+    ///
+    /// # Safety
+    ///
+    /// The capacity of the vector must be sufficient for the new bytes.
+    #[inline]
+    unsafe fn push_many_unchecked(&mut self, byte: i8, count: usize) {
+        debug_assert!(self.capacity() - self.len() >= count);
+
+        core::ptr::write_bytes(
+            self.as_mut_ptr().add(self.len()),
+            byte.cast_unsigned(),
+            count,
+        );
+        self.set_len(self.len() + count);
+    }
+}
+
 /// Duplicate exports in `prelude` to comply with `clippy::wildcard_imports`.
 pub mod prelude {
     pub use super::*;
