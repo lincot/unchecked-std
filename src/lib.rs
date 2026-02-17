@@ -179,6 +179,7 @@ impl<T: Copy, V: GenericVec<Item = T>> ExtendFromWithinUnchecked for V {
     ///
     /// - `src` must be a valid index for `self`
     /// - capacity of `self` must be sufficient for the new items
+    #[inline]
     unsafe fn extend_from_within_unchecked<R>(&mut self, src: R)
     where
         R: core::ops::RangeBounds<usize>,
@@ -255,6 +256,7 @@ impl<T: Copy> CopyFromSliceUnchecked<T> for [T] {
     /// # Safety
     ///
     /// `self.len()` must be `== src.len()`.
+    #[inline]
     unsafe fn copy_from_slice_unchecked(&mut self, src: &[T]) {
         debug_assert!(self.len() == src.len());
         unsafe {
