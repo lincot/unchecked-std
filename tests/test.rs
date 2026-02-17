@@ -237,3 +237,29 @@ fn test_copy_from_slice_unchecked() {
     unsafe { arr_unchecked[25..75].copy_from_slice_unchecked(&src1) };
     assert_eq!(arr, arr_unchecked);
 }
+
+macro_rules! test_push_many_unchecked_generic {
+    ($($t:ty)*) => ($(
+        let mut v = Vec::with_capacity(LEN);
+        let mut v_unchecked = Vec::with_capacity(LEN);
+        #[cfg(feature = "heapless")]
+        let mut v_heapless = heapless::Vec::<_, LEN>::new();
+        let value: $t = 5;
+        for _ in 0..LEN {
+            v.push(value);
+        }
+        unsafe { v_unchecked.push_many_unchecked(value, LEN) };
+        assert_eq!(v, v_unchecked);
+        #[cfg(feature = "heapless")]
+        {
+            unsafe { v_heapless.push_many_unchecked(value, LEN) };
+            assert_eq!(v, v_heapless.as_slice());
+        }
+    )*)
+}
+
+#[test]
+fn test_push_many_unchecked() {
+    const LEN: usize = 100;
+    test_push_many_unchecked_generic! { u8 i8 }
+}
