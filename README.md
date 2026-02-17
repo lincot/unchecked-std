@@ -57,9 +57,9 @@ fn hello_unchecked(name: &str) -> String {
 The [benchmark](benches/bench.rs) result is:
 
 ```
-test bench_hello_format    ... bench:          29.50 ns/iter (+/- 0.74)
-test bench_hello_checked   ... bench:          15.47 ns/iter (+/- 0.31)
-test bench_hello_unchecked ... bench:          11.45 ns/iter (+/- 0.65)
+test bench_hello_format    ... bench:          30.56 ns/iter (+/- 0.30)
+test bench_hello_checked   ... bench:          14.57 ns/iter (+/- 0.44)
+test bench_hello_unchecked ... bench:           9.98 ns/iter (+/- 0.22)
 ```
 
 ## Feature flags
